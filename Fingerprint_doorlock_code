@@ -1,0 +1,52 @@
+#include <Keypad.h>
+#include <LiquidCrystal.h>
+#include <Servo.h>
+ 
+// Define pins for various components
+#define SERVO_PIN 8           // Servo motor pin
+#define RED_LED_PIN 12        // Red LED pin (for incorrect password indication)
+#define GREEN_LED_PIN 13      // Green LED pin (for access granted indication)
+#define BUZZER_PIN 11         // Buzzer pin (for sound feedback)
+ 
+Servo myservo;                // Servo object
+LiquidCrystal lcd(2, 3, 4, 5, 6, 7); // LCD object with defined pins
+ 
+// Keypad configuration
+const byte rows = 4, cols = 4; // Keypad dimensions (4x4)
+char keys[rows][cols] = {      // Keypad layout
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+byte rowPins[rows] = {A0, A1, A2, A3}; // Row pins connected to Arduino
+byte colPins[cols] = {A4, A5, 9, 10};  // Column pins connected to Arduino
+ 
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, rows, cols); // Keypad object
+ 
+// Passwords
+char masterPassword[] = "1234";  // Master password for password change
+char savedPassword[5] = "";      // User-set password
+char enteredPassword[5];         // Buffer for entering a password
+int currentPosition = 0;         // Tracks the number of entered digits
+int invalidCount = 0;            // Counts incorrect password attempts
+ 
+// Flags for different modes
+bool isFirstBoot = true;         // Indicates if it's the first time setting the password
+bool isSettingPassword = false; // Indicates if the system is in password setup mode
+bool isCheckingMaster = false;  // Indicates if the system is verifying the master password
+ 
+void setup() {
+  lcd.begin(16, 2);            // Initialize LCD
+  pinMode(RED_LED_PIN, OUTPUT); // Set LED pins as outputs
+  pinMode(GREEN_LED_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);  // Set buzzer pin as output
+  myservo.attach(SERVO_PIN);    // Attach servo to the defined pin
+  myservo.write(0);             // Initial servo position (locked)
+  Serial.begin(9600);           // Begin serial communication (for debugging)
+ 
+  // First boot behavior: prompt user to set the password
+  if (isFirstBoot) {
+    lcd.print("Set Password:"); // Show setup message on LCD
+    isSettingPassword = true;  // Enable password setup mode
+    currentPosition = 0;
